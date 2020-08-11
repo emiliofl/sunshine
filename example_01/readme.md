@@ -14,6 +14,12 @@ init.sh
 docker-compose up
 ```
 
+## Stop the network
+
+```bash
+docker-compose down
+```
+
 ## Build the network and install chaincode inside the cli container
 Open terminal 2 in the same folder.
 
@@ -78,4 +84,32 @@ docker exec cli peer chaincode query -n mycc -c '{"Args":["query","msg3"]}' -C $
 docker exec -e "CORE_PEER_ADDRESS=peer1.producer.sunshine.com:8051" cli peer chaincode query -n mycc -c '{"Args":["query","msg3"]}' -C $CHANNEL_NAME 
 
 docker exec -e "CORE_PEER_ADDRESS=peer0.producer.sunshine.com:7051" cli peer chaincode query -n mycc -c '{"Args":["query","msg3"]}' -C $CHANNEL_NAME 
+```
+
+## Log the container
+You can log a specific container.
+```bash
+docker logs -f peer0.producer.sunshine.com
+```
+
+## Inspect the network
+Which container are inside of a network.
+```bash
+docker network inspect net_sunshine
+```
+
+## Cleanup the network
+```bash 
+# stop thenetwork
+docker-compose stop
+
+# delete all persistent volumes
+docker volume prune
+
+# remove all exited container
+docker rm $(docker ps -a -f status=exited -q)
+
+# remove only chaincode container
+docker rm -f $(docker ps -a | awk '($2 ~ /dev-peer.*/) {print $1}')
+
 ```
