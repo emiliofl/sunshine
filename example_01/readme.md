@@ -65,3 +65,17 @@ peer chaincode invoke -n mycc -c '{"Args":["set","msg2","sunshine.com"]}' -C $CH
 ```
 
 ## Use the docker exec command
+You can also use the peer chaincode commands from outside the cli container.
+
+```bash
+export CHANNEL_NAME=mychannel 
+
+docker exec cli peer chaincode query -n mycc -c '{"Args":["query","msg1"]}' -C $CHANNEL_NAME 
+docker exec cli peer chaincode invoke -n mycc -c '{"Args":["set","msg3","enter the box"]}' -C $CHANNEL_NAME
+docker exec cli peer chaincode query -n mycc -c '{"Args":["query","msg3"]}' -C $CHANNEL_NAME 
+
+# change also some environment vars
+docker exec -e "CORE_PEER_ADDRESS=peer1.producer.sunshine.com:8051" cli peer chaincode query -n mycc -c '{"Args":["query","msg3"]}' -C $CHANNEL_NAME 
+
+docker exec -e "CORE_PEER_ADDRESS=peer0.producer.sunshine.com:7051" cli peer chaincode query -n mycc -c '{"Args":["query","msg3"]}' -C $CHANNEL_NAME 
+```
