@@ -1,4 +1,4 @@
-# Example 01
+# Support material for HLF Administrator session 01
 Sunshine.com - the birth of a consortium.
 
 ## Setup the network
