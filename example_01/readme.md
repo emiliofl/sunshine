@@ -2,7 +2,7 @@
 Sunshine.com - the birth of a consortium.
 
 ## Setup the network
-Open terminal 1
+Open terminal 1 or use a tmux session.
 
 ```bash
 # create crypto material
@@ -111,5 +111,5 @@ docker rm $(docker ps -a -f status=exited -q)
 
 # remove only chaincode container
 docker rm -f $(docker ps -a | awk '($2 ~ /dev-peer.*/) {print $1}')
-
 ```
+
