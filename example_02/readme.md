@@ -69,13 +69,14 @@ export CORE_PEER_TLS_CLIENTCERT_FILE="/opt/gopath/src/github.com/hyperledger/fab
 export CORE_PEER_TLS_CLIENTKEY_FILE="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/producer.sunshine.com/users/Admin@producer.sunshine.com/tls/client.key"
 
 # create channel
-peer channel create -o orderer.sunshine.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel_$CHANNEL_NAME.tx --tls --cafile $TLS_ORDERER_CA
+peer channel create -o orderer.sunshine.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel_$CHANNEL_NAME.tx --tls --cafile $TLS_ORDERER_CA --clientauth --keyfile $CORE_PEER_TLS_CLIENTKEY_FILE --certfile $CORE_PEER_TLS_CLIENTCERT_FILE
+
 
 # join channel peer0
 peer channel join -b $CHANNEL_NAME.block  
 
 # update anchor peer
-peer channel update -o orderer.sunshine.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx --tls --cafile $TLS_ORDERER_CA
+peer channel update -o orderer.sunshine.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/${CORE_PEER_LOCALMSPID}anchors.tx --tls --cafile $TLS_ORDERER_CA --clientauth --keyfile $CORE_PEER_TLS_CLIENTKEY_FILE --certfile $CORE_PEER_TLS_CLIENTCERT_FILE
 
 # join channel peer1
 export CORE_PEER_ADDRESS="peer1.producer.sunshine.com:8051"
@@ -88,7 +89,7 @@ export CORE_PEER_ADDRESS="peer0.producer.sunshine.com:7051"
 peer chaincode install -n mycc -v 1  -p github.com/chaincode/sacc 
 
 # instantiate chaincode peer 0
-peer chaincode instantiate -o orderer.sunshine.com:7050 -C $CHANNEL_NAME -n mycc  -v 1 -c '{"Args":["msg1","hello"]}' -P "AND ('ProducerMSP.peer')" --tls --cafile $TLS_ORDERER_CA 
+peer chaincode instantiate -o orderer.sunshine.com:7050 -C $CHANNEL_NAME -n mycc  -v 1 -c '{"Args":["msg1","hello"]}' -P "AND ('ProducerMSP.peer')" --tls --cafile $TLS_ORDERER_CA --clientauth --keyfile $CORE_PEER_TLS_CLIENTKEY_FILE --certfile $CORE_PEER_TLS_CLIENTCERT_FILE
 
 # switch to peer1
 export CORE_PEER_ADDRESS="peer1.producer.sunshine.com:8051"
@@ -101,10 +102,10 @@ peer chaincode install -n mycc -v 1  -p github.com/chaincode/sacc
 ## Query and invoke the chaincode
 ```bash
 # query the chaincode
-peer chaincode query -n mycc -c '{"Args":["query","msg5"]}' -C $CHANNEL_NAME 
+peer chaincode query -n mycc -c '{"Args":["query","msg1"]}' -C $CHANNEL_NAME 
 
 # invoke the chaincode one-way tls
-peer chaincode invoke -n mycc -c '{"Args":["set","msg5","One-Way TLS enabled"]}' -C $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA 
+peer chaincode invoke -n mycc -c '{"Args":["set","msg1","One-Way TLS enabled"]}' -C $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA --clientauth --keyfile $CORE_PEER_TLS_CLIENTKEY_FILE --certfile $CORE_PEER_TLS_CLIENTCERT_FILE
 
 # invoke the chaincode two-way tls
 peer chaincode invoke -n mycc -c '{"Args":["set","msg6","Two-Way TLS enabled as well"]}' -C $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA  --clientauth --keyfile $CORE_PEER_TLS_CLIENTKEY_FILE --certfile $CORE_PEER_TLS_CLIENTCERT_FILE
@@ -115,8 +116,8 @@ export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/pee
 export CORE_PEER_TLS_CLIENTKEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/producer.sunshine.com/users/User1@producer.sunshine.com/tls/client.key
 export CORE_PEER_TLS_CLIENTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/producer.sunshine.com/users/User1@producer.sunshine.com/tls/client.crt
 
-peer chaincode query -n mycc -c '{"Args":["query","msg5"]}' -C $CHANNEL_NAME 
-peer chaincode invoke -n mycc -c '{"Args":["set","msg7","User1 Two-Way TLS enabled as well"]}' -C $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA  --clientauth --keyfile $CORE_PEER_TLS_CLIENTKEY_FILE --certfile $CORE_PEER_TLS_CLIENTCERT_FILE
+peer chaincode query -n mycc -c '{"Args":["query","msg1"]}' -C $CHANNEL_NAME 
+peer chaincode invoke -n mycc -c '{"Args":["set","msg2","User1 Two-Way TLS enabled as well"]}' -C $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA  --clientauth --keyfile $CORE_PEER_TLS_CLIENTKEY_FILE --certfile $CORE_PEER_TLS_CLIENTCERT_FILE
 ```
 
 ## Logging
