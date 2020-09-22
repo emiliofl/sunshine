@@ -1,0 +1,35 @@
+# Copyright rbole@samlinux.at
+#
+version: '2'
+
+volumes:
+  peer2.producer.sunshine.com:
+
+networks:
+  sunshine:
+
+services:
+
+  peer2.producer.sunshine.com:
+    container_name: peer2.producer.sunshine.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer2.producer.sunshine.com
+      - CORE_PEER_ADDRESS=peer2.producer.sunshine.com:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer2.producer.sunshine.com:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2.producer.sunshine.com:9051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.producer.sunshine.com:7051
+      - CORE_PEER_LOCALMSPID=ProducerMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ./crypto-config/peerOrganizations/producer.sunshine.com/peers/peer2.producer.sunshine.com/msp:/etc/hyperledger/fabric/msp
+        - ./crypto-config/peerOrganizations/producer.sunshine.com/peers/peer2.producer.sunshine.com/tls:/etc/hyperledger/fabric/tls
+        - peer2.producer.sunshine.com:/var/hyperledger/production
+    ports:
+      - "9051:9051"
+    networks:
+      - sunshine

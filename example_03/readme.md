@@ -243,7 +243,6 @@ peer chaincode invoke -n mycc -c '{"Args":["set","msg1","Two-Way TLS enabled as 
 ```
 
 ## Logging
-
 ```bash
 docker logs orderer.sunshine.com 2>&1 |grep error
 ```
@@ -253,4 +252,63 @@ docker logs orderer.sunshine.com 2>&1 |grep error
 docker rm $(docker ps -a -f status=exited -q)
 ```
 
+# Expand the network
+## Add a new peer to an existing organisation
+### Process to add a new peer to an existing organization
 
+Edit crypto-config.yaml and add another peer at the template section.
+```bash
+vi crypto-config.yaml
+```
+
+Extend the existing crypto material for the new peer. Notice the extend options.
+```bash
+cryptogen extend --config=./crypto-config.yaml
+```
+
+See what happend.
+```bash
+tree crypto-config/peerOrganizations/producer.sunshine.com/peers/ -L 1
+```
+
+create new docker-compose-peer2.yaml 
+```bash 
+vi docker-compose-peer2.yaml 
+```
+
+```bash
+# start peer2
+docker-compose -f docker-compose-peer2.yaml up 
+
+# Execute the cli container
+docker exec -it cli bash
+
+# set needed environment variables
+export CHANNEL_NAME=mychannel 
+export TLS_ORDERER_CA="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/sunshine.com/tlsca/tlsca.sunshine.com-cert.pem"
+
+export CORE_PEER_ADDRESS="peer2.producer.sunshine.com:9051"
+
+export CORE_PEER_TLS_KEY_FILE="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/producer.sunshine.com/peers/peer2.producer.sunshine.com/tls/server.key"
+
+export CORE_PEER_TLS_CERT_FILE="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/producer.sunshine.com/peers/peer2.producer.sunshine.com/tls/server.crt"
+
+export CORE_PEER_TLS_ROOTCERT_FILE="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/producer.sunshine.com/peers/peer2.producer.sunshine.com/tls/ca.crt"
+
+# important fetch block 0 || fetch oldest
+# we need to pull the genesis block for the current channel we would like to append our peer to
+peer channel fetch oldest ./mychannelPeer2.block -c $CHANNEL_NAME --orderer orderer.sunshine.com:7050  --tls --cafile $TLS_ORDERER_CA 
+
+# join the channel
+peer channel join -b ./mychannelPeer2.block
+
+# install the chaincode to be an endorser
+peer chaincode install -n mycc -v 1  -p github.com/chaincode/sacc
+
+# query the peer
+peer chaincode query -n mycc -c '{"Args":["query","msg1"]}' -C $CHANNEL_NAME 
+
+peer chaincode invoke -n mycc -c '{"Args":["set","msg3","MSG from peer2"]}' -C $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA 
+
+peer chaincode invoke -n mycc -c '{"Args":["set","msg4","MSG from peer2-1"]}' -C $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA 
+```
