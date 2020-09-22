@@ -104,7 +104,7 @@ peer chaincode install -n mycc -v 1  -p github.com/chaincode/sacc
 # query the chaincode
 peer chaincode query -n mycc -c '{"Args":["query","msg1"]}' -C $CHANNEL_NAME 
 
-# invoke the chaincode one-way tls
+# invoke the chaincode two-way tls
 peer chaincode invoke -n mycc -c '{"Args":["set","msg1","One-Way TLS enabled"]}' -C $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA --clientauth --keyfile $CORE_PEER_TLS_CLIENTKEY_FILE --certfile $CORE_PEER_TLS_CLIENTCERT_FILE
 
 # invoke the chaincode two-way tls
