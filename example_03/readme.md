@@ -312,3 +312,78 @@ peer chaincode invoke -n mycc -c '{"Args":["set","msg3","MSG from peer2"]}' -C $
 
 peer chaincode invoke -n mycc -c '{"Args":["set","msg4","MSG from peer2-1"]}' -C $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA 
 ```
+
+## Change the channel configuration, batchTime
+
+```bash
+# see all logs
+docker-compose logs -f --tail="10"
+
+# Execute the cli container
+docker exec -it cli bash
+
+export CORE_PEER_LOCALMSPID="ProducerMSP"
+export CHANNEL_NAME=mychannel 
+export TLS_ORDERER_CA="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/sunshine.com/tlsca/tlsca.sunshine.com-cert.pem"
+
+export CORE_PEER_ADDRESS="peer0.producer.sunshine.com:7051"
+
+export CORE_PEER_TLS_KEY_FILE="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/producer.sunshine.com/peers/peer0.producer.sunshine.com/tls/server.key"
+
+export CORE_PEER_TLS_CERT_FILE="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/producer.sunshine.com/peers/peer0.producer.sunshine.com/tls/server.crt"
+
+export CORE_PEER_TLS_ROOTCERT_FILE="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/producer.sunshine.com/peers/peer0.producer.sunshine.com/tls/ca.crt"
+
+# fetch the last config block
+peer channel fetch config config_block.pb -o orderer.sunshine.com:7050 -c $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA
+
+
+# Convert the Configuration to JSON and Trim It Down
+# we’ll scope out all of the unnecessary metadata from the config
+configtxlator proto_decode --input config_block.pb --type common.Block | jq .data.data[0].payload.data.config > config.json
+
+# ------------------------
+# modify the config value with the editor of your choice
+# ------------------------
+
+# First, translate config.json back into a protobuf called config.pb
+configtxlator proto_encode --input config.json --type common.Config --output config.pb
+
+# Next, encode config_modified.json to modified_config.pb
+configtxlator proto_encode --input config_modified.json --type common.Config --output config_modified.pb
+
+# Now use configtxlator to calculate the delta between these two config protobufs.
+configtxlator compute_update --channel_id $CHANNEL_NAME --original config.pb --updated config_modified.pb --output 10sBatch_update.pb
+
+# Final steps
+## First, let’s decode this object into editable JSON format and call it 10sBatch_update.json
+configtxlator proto_decode --input 10sBatch_update.pb --type common.ConfigUpdate | jq . > 10sBatch_update.json
+
+## we need to wrap in an envelope message
+echo '{"payload":{"header":{"channel_header":{"channel_id":"'$CHANNEL_NAME'", "type":2}},"data":{"config_update":'$(cat 10sBatch_update.json)'}}}' | jq . > 10sBatch_update_in_envelope.json
+
+## convert it into the fully fledged protobuf format
+configtxlator proto_encode --input 10sBatch_update_in_envelope.json --type common.Envelope --output 10sBatch_update_in_envelope.pb
+
+# Sign and Submit the Config Update
+# change to an Orderer Admin
+export CORE_PEER_LOCALMSPID="OrdererMSP"
+export CORE_PEER_MSPCONFIGPATH="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/sunshine.com/users/Admin@sunshine.com/msp"
+
+export CHANNEL_NAME=mychannel 
+export TLS_ORDERER_CA="/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/sunshine.com/tlsca/tlsca.sunshine.com-cert.pem"
+
+peer channel signconfigtx -f 10sBatch_update_in_envelope.pb
+
+
+peer channel update -f 10sBatch_update_in_envelope.pb -c $CHANNEL_NAME -o orderer.sunshine.com:7050 --tls --cafile $TLS_ORDERER_CA
+
+
+# to verify the change get the config again
+peer channel fetch config config_block-check.pb -o orderer.sunshine.com:7050 -c $CHANNEL_NAME --tls --cafile $TLS_ORDERER_CA
+configtxlator proto_decode --input config_block-check.pb --type common.Block | jq .data.data[0].payload.data.config > config-check.json
+
+cat config-check.json | jq .channel_group.groups.Orderer.values.BatchTimeout
+
+```
+
